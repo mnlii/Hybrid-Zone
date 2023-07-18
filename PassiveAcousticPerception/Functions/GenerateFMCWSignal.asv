@@ -1,0 +1,92 @@
+function chirp = GenerateFMCWSignal(SignalParam)
+    % t = (0:SignalParam.SampleTime:SignalParam.ChirpT - SignalParam.SampleTime)';
+    % chirp = exp(1i*2*pi*(SignalParam.ChirpF0*t + SignalParam.ChirpBW/SignalParam.ChirpT/2*t.^2));
+    % 
+    % 
+    % s=cos(2*pi*600*(1:SignalParam.SampleFrequency)/SignalParam.SampleFrequency)'*0.05;
+    % s(9601:19200)=0;
+    % s(28801:38400)=0;
+    % s=[s;repmat(real(chirp),round(300/SignalParam.ChirpT),1)];
+    % audiowrite("Functions\chirp.wav",s,SignalParam.SampleFrequency);
+
+
+
+    % SignalParam.ChirpBW = 4e3;% The bandwidth of Chirp (4kHz)
+    % SignalParam.ChirpT = 4e-2;
+    % SignalParam.ChirpF0 = 18e3;% The initial frequency of Chirp (18kHz)
+    % SignalParam.ChirpF1 = SignalParam.ChirpF0+SignalParam.ChirpF0;
+    % 
+    % SignalParam.ScaleFactors = 1;% We calculate k chirp at the same time
+    % SignalParam.ChirpWindows = SignalParam.ChirpT*SignalParam.ScaleFactors;% The duration of Window for calculation
+    % SignalParam.SampleFrequency = 48e3;%48kHz
+    % SignalParam.ChannelNum = 6;% The number of microphones
+    % SignalParam.Speed = 346;% The speed of sound signals
+    % SignalParam.SampleTime = 1/SignalParam.SampleFrequency;% Sampling time for each sample
+    % 
+    % SignalParam.ChirpSize = SignalParam.ChirpT/SignalParam.SampleTime; % Samples for each chirp
+    % 
+    % SignalParam.SearchChirpRange= 300:30:1920;%40个子采样点
+    t = (0:SignalParam.SampleTime:2*SignalParam.ChirpT - SignalParam.SampleTime)';
+    % 
+    t_up = (0:SignalParam.SampleTime:SignalParam.ChirpT - SignalParam.SampleTime)';
+    chirp_up = exp(1i*2*pi*(SignalParam.ChirpF0*t_up + SignalParam.ChirpBW/SignalParam.ChirpT/2*t_up.^2));
+    t_down = (SignalParam.ChirpT:SignalParam.SampleTime:2*SignalParam.ChirpT - SignalParam.SampleTime)';
+    chirp_down = exp(1i*2*pi*((SignalParam.ChirpF0+SignalParam.ChirpBW)*t_down - SignalParam.ChirpBW/SignalParam.ChirpT/2*t_down.^2));  % 注意这里的负号
+    chirp_combined = [real(chirp_up); real(chirp_down)];
+    
+    %b = cos(2*pi*SignalParam.ChirpF0*t);
+    %chirp_combined = real(b) + chirp_combined;
+    chirp = chirp_combined;
+    fprintf('chirp size: %d x %d\n', size(chirp, 1), size(chirp, 2));
+    % s=cos(2*pi*600*(1:SignalParam.SampleFrequency)/SignalParam.SampleFrequency)'*0.05;
+    % s(9601:19200)=0;
+    % s(28801:38400)=0;
+    % s = [s; repmat(chirp_combined, round(300/(2*SignalParam.ChirpT)), 1)];  % 注意这里的2*SignalParam.ChirpT，因为我们现在有两个chirp，所以总时间是原来的两倍
+    % s = s / max(abs(s));
+    %plot(s(1:3000))
+    % audiowrite("Functions\chirp4.wav",s,SignalParam.SampleFrequency); 
+
+
+
+%end
+% [audioData, sampleRate] = audioread('chirptest2.m4a');
+% 
+% % 计算音频的STFT
+% stftMatrix = stft(audioData, 'Window', hamming(1024), 'OverlapLength', 512, 'FFTLength', 1024);
+% 
+% % 取绝对值并转换为分贝
+% stftMatrix = mag2db(abs(stftMatrix));
+% 
+% % 计算时间和频率矢量
+% t = (0:size(stftMatrix,2)-1)*size(stftMatrix,2)/sampleRate;
+% f = (0:size(stftMatrix,1)-1)*sampleRate/size(stftMatrix,1);
+% 
+% % 创建一个新的图形窗口
+% figure
+% 
+% % 画出STFT矩阵
+% imagesc(t,f,stftMatrix)
+% 
+% % 翻转y轴方向使得频率从低到高
+% set(gca,'YDir','normal')
+% 
+% % 添加坐标轴标题和图形标题
+% xlabel('Time (s)')
+% ylabel('Frequency (Hz)')
+% title('Spectrogram of audio signal')
+% colorbar
+% 
+% [audioData, sampleRate] = audioread('chirptest2.m4a');
+% sampleRate = 48000;
+% [S,F, T] = stft(audioData, sampleRate, 'Window', hamming(1024), 'OverlapLength', 512, 'FFTLength', 1024);
+% S = mag2db(abs(S));
+% F = F * sampleRate;
+% 
+% figure
+% imagesc(T, F, S);
+% set(gca,'YDir','normal');
+% 
+% xlabel('Time (s)')
+% ylabel('Frequency (Hz)')
+% title('Spectrogram of audio signal')
+% colorbar
