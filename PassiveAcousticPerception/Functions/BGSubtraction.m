@@ -1,9 +1,9 @@
 function [BGSubtractionData,Signal] = BGSubtraction(SignalParam,FilterParam,Signal,BGSignal,fig)
 % 
-    data=Signal(1:SignalParam.ChirpSize,:);
+    data = Signal(1:SignalParam.ChirpSize,:);
     Signal(1:SignalParam.ChirpSize,:)=[];
-    BGSubtractionData=data-BGSignal*0.8;
-    
+    BGSubtractionData = data - BGSignal * 1;
+    %BGSubtractionData = data;
 
     if fig
         figure;

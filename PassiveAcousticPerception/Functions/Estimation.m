@@ -39,16 +39,17 @@ function [P_up, P_down, v, d, idx_shift, x] = Estimation(SignalParam,FilterParam
 chirp=GenerateFMCWSignal(SignalParam);
 midpoint = round(size(chirp, 1) / 2);
 chirp_up = chirp(1:midpoint, :);
-%chirp_up = circshift(chirp_up, [idx_shift, 0]);
+
+chirp_up = circshift(chirp_up, [idx_shift, 0]);
 chirp_down = chirp(midpoint+1:end, :);
-%chirp_down = circshift(chirp_down, [idx_shift, 0]);
-data=data./max(data);
+chirp_down = circshift(chirp_down, [idx_shift, 0]);
+%data=data./max(data);
 data_up = data(1:midpoint, :);
 %data_up = data_up - mean(data_up);
 data_down = data(midpoint+1:end, :);
 
 % 处理上部分数据
-datafiltered_up = filter(FilterParam.LPF_Filter_Pass,FilterParam.LPF_Filter_Stop,chirp_up.*data_up);
+datafiltered_up = chirp_up.*data_up;
 % raw_data = datafiltered_up;
 %     if size(raw_data, 2) > 1
 %     raw = mean(raw_data, 2); % Average the two channels.
@@ -67,12 +68,20 @@ datafiltered_up = filter(FilterParam.LPF_Filter_Pass,FilterParam.LPF_Filter_Stop
 % ylabel('Frequency (Hz)')
 % title('Spectrogram of raw_data')
 % colorbar;
-
+[LPF_b,LPF_a] = DesignHPF(100,200,48000);
+[HPF_b,HPF_a] = DesignLPF(1500,2000,48000);
+datafiltered_up = filter(LPF_b,LPF_a,datafiltered_up);
+datafiltered_up = filter(HPF_b,HPF_a,datafiltered_up);
 s_up = datafiltered_up;
+
+
+
+
 s_up = s_up - mean(s_up);
 fft_up = fft(s_up, SignalParam.FFTLength) / size(s_up,1); 
 fft_up = fftshift(fft_up,1);
 data_fft_abs_up = abs(fft_up);
+%data_fft_abs_up = data_fft_abs_up .* sum(data_fft_abs_up,2);
 [~,idx_up] = max(data_fft_abs_up);
 
 
@@ -99,11 +108,15 @@ end
 theta_up = idx_up - 61;
 P_up = [meanr_up/2, theta_up];
 % 处理下部分数据
-datafiltered_down = filter(FilterParam.LPF_Filter_Pass,FilterParam.LPF_Filter_Stop,chirp_down.*data_down);
+%datafiltered_down = filter(FilterParam.LPF_Filter_Pass,FilterParam.LPF_Filter_Stop,chirp_down.*data_down);
+datafiltered_down = chirp_down.*data_down;
+datafiltered_down = filter(LPF_b,LPF_a,datafiltered_down);
+datafiltered_down = filter(HPF_b,HPF_a,datafiltered_down);
 s_down = datafiltered_down;
 fft_down = fft(s_down, SignalParam.FFTLength) / size(s_down,1); 
 fft_down = fftshift(fft_down,1);
 data_fft_abs_down = abs(fft_down);
+%data_fft_abs_down = data_fft_abs_down .* sum(data_fft_abs_down,2);
 [~,idx_down] = max(data_fft_abs_down);
 
 
@@ -123,8 +136,8 @@ fv = (goodvalue_up - goodvalue_down )/2;
 
 %fprintf('fd = %f, fv = %f\n\n',fd, fv);
 
-v = (fv*SignalParam.Speed)/(20000);
-d = fd*SignalParam.Speed*SignalParam.ChirpT/2/SignalParam.ChirpBW;
+v = (fv * SignalParam.Speed)/(20000);
+d = fd * SignalParam.Speed * SignalParam.ChirpT/2/SignalParam.ChirpBW;
 
 
 r_down = (idx_down - SignalParam.SampleFrequency/2 - 1) / SignalParam.ChirpBW * SignalParam.ChirpT * SignalParam.Speed;
@@ -152,6 +165,7 @@ if fig
     for ii=1:6
         subplot(6,1,ii)
         plot(f_, data_fft_abs_up(range, ii));
+        %ylim([0,5000000]);
     end
 
     % 绘制下半部分数据的图
@@ -159,33 +173,40 @@ if fig
     for ii=1:6
         subplot(6,1,ii)
         plot(f_, data_fft_abs_down(range, ii));
+        %ylim([0,5000000]);
     end
 
 
 % Number of shifts
-nShifts = 28; 
+nShifts = 5; 
 
 % Number of iterations
-nIterations = 100; 
+nIterations = 192; 
 
 shiftt = zeros(1, nIterations+1);
 % Loop for shifting
 for i = 0:nIterations
     chirp_shift = circshift(chirp_up, [i * nShifts, 0]);
-    shift = filter(FilterParam.LPF_Filter_Pass,FilterParam.LPF_Filter_Stop,chirp_shift.*data_up);
+    shift = chirp_shift.*data_up;
+    shift = filter(LPF_b,LPF_a,shift);
+    shift = filter(HPF_b,HPF_a,shift);
+    
+
     tmp = shift;
     tmp = tmp - mean(tmp);
     fft_shift = fft(tmp, SignalParam.FFTLength) / size(tmp,1); 
     fft_shift = fftshift(fft_shift,1);
     data_shift = abs(fft_shift);
-    [idx_shift,value] = max(data_shift);
-    fprintf('%d ', value);
+    [idx_shift,~] = max(data_shift);
+    %fprintf('%d ', value);
 %fprintf('frequency in down chrip: %f\n',frequency_down);
     goodvalue_shift = ~isoutlier(idx_shift).*(1:6);
     goodvalue_shift = goodvalue_shift(goodvalue_shift~=0);
     goodvalue_shift = mean(idx_shift(goodvalue_shift));
     shiftt(i+1) = goodvalue_shift;
 end
+shiftt = hampel(shiftt,20,0.05);
+shiftt = smooth(shiftt,20);
 figure;
 plot(0:nIterations, shiftt);
 xlabel('Iteration');
@@ -193,7 +214,7 @@ ylabel('Good Value Shift');
 title('Good Value Shift over Iterations');
 [~, idx_shift] = max(shiftt);
 idx_shift = idx_shift - 1;
-idx_shift = 0;
+%idx_shift = 0;
 end
 
 

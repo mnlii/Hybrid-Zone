@@ -109,14 +109,14 @@ fprintf('-- Read size: %d, %d;\n',size(Signal,1), size(Signal,2));
 %Background Alignment
 BGSignal=zeros(SignalParam.ChirpSize,6);
 %fprintf('BGSignal size=%d\n', size(BGSignal));
-for ii=1:50
+for ii=1:5
         %fprintf('+Signal:%f\n', Signal(1:SignalParam.ChirpSize,:));
         BGSignal=BGSignal+Signal(1:SignalParam.ChirpSize,:);
         %fprintf('BGSignal=%f\n', BGSignal);
         Signal(1:SignalParam.ChirpSize,:)=[];
-end % delete 25 chirps i.e. 1s (48000 samples)
+end % delete 25 chirps i.e. 2s (48000 samples)
     
     % in total, will delete 2.4s ~ 2.44s, i.e., 115200 ~ 117120 samples
     %fprintf('-- raw size new new: %d;\n',size(raw_data(:,mic_index)));
-    BGSignal=BGSignal/50;
+    BGSignal=BGSignal/5;
 end
