@@ -2,7 +2,7 @@ function [Signal, mic_index] = Load6MicData(SignalParam,FilterParam,filname)
    
     %% ¶ÁÈ¡Êý¾Ý
 
-    raw_data = double(audioread(['.\Functions\source\',filname,'.wav'],'native')); % filname='0613';
+    raw_data = double(audioread(['C:\Users\mengn\Desktop\summer\data\0721\',filname,'.wav'],'native')); % filname='0613';
 
 
 % 
